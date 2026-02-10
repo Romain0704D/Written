@@ -12,7 +12,10 @@
         <aside class="sidebar">
             <div class="sidebar-header">
                 <h1>📝 Written</h1>
+                <button id="darkModeToggle" class="btn-secondary" title="Mode sombre">🌙 Mode sombre</button>
                 <button id="newPageBtn" class="btn-primary" title="Créer une nouvelle page">+ Nouvelle Page</button>
+                <button id="importBtn" class="btn-secondary" title="Importer un fichier Markdown">📤 Importer</button>
+                <input type="file" id="importFileInput" accept=".md" style="display:none">
             </div>
             <div class="pages-list" id="pagesList">
                 <!-- Pages will be dynamically inserted here -->
@@ -31,6 +34,7 @@
                         <button id="undoBtn" class="btn-secondary" title="Annuler (Ctrl+Z)" disabled>↶ Annuler</button>
                         <button id="redoBtn" class="btn-secondary" title="Rétablir (Ctrl+Y)" disabled>↷ Rétablir</button>
                         <button id="exportBtn" class="btn-secondary" title="Exporter en Markdown">📥 Exporter</button>
+                        <button id="pdfExportBtn" class="btn-secondary" title="Exporter en PDF">📄 PDF</button>
                         <button id="deleteBtn" class="btn-danger" title="Supprimer cette page">🗑️ Supprimer</button>
                     </div>
                 </div>
@@ -55,6 +59,9 @@
                     <div class="feature">💾 Sauvegarde auto</div>
                     <div class="feature">↶ Annuler/Rétablir</div>
                     <div class="feature">⌨️ Raccourcis clavier</div>
+                    <div class="feature">🌙 Mode sombre</div>
+                    <div class="feature">📄 Export PDF</div>
+                    <div class="feature">📊 Tableaux</div>
                 </div>
                 <div class="welcome-shortcuts">
                     <h3>⌨️ Raccourcis clavier</h3>
