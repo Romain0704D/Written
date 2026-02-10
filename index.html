@@ -23,7 +23,10 @@
         <main class="main-content">
             <div class="editor-container">
                 <div class="editor-header">
-                    <input type="text" id="pageTitle" class="page-title-input" placeholder="Untitled">
+                    <div class="editor-header-left">
+                        <div id="breadcrumbs" class="breadcrumbs"></div>
+                        <input type="text" id="pageTitle" class="page-title-input" placeholder="Untitled">
+                    </div>
                     <div class="editor-actions">
                         <button id="exportBtn" class="btn-secondary">📥 Export MD</button>
                         <button id="deleteBtn" class="btn-danger">🗑️ Delete</button>

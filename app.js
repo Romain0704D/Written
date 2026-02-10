@@ -108,22 +108,107 @@ function renderPagesList() {
         return;
     }
     
-    pages.forEach(page => {
-        const pageItem = document.createElement('div');
-        pageItem.className = 'page-item';
-        if (page.id === currentPageId) {
-            pageItem.classList.add('active');
-        }
-        
-        const icon = page.icon || '📄';
-        pageItem.innerHTML = `
-            <span class="page-item-icon">${icon}</span>
-            <span class="page-item-title">${escapeHtml(page.title)}</span>
-        `;
-        
-        pageItem.addEventListener('click', () => loadPage(page.id));
-        pagesList.appendChild(pageItem);
+    // Render root pages (no parent)
+    const rootPages = pages.filter(p => !p.parentId);
+    rootPages.forEach(page => {
+        renderPageItem(page, 0);
     });
+}
+
+// Render a single page item with children
+function renderPageItem(page, level) {
+    const pageItem = document.createElement('div');
+    pageItem.className = 'page-item';
+    pageItem.style.paddingLeft = (12 + level * 20) + 'px';
+    if (page.id === currentPageId) {
+        pageItem.classList.add('active');
+    }
+    
+    const icon = page.icon || '📄';
+    const children = pages.filter(p => p.parentId === page.id);
+    const hasChildren = children.length > 0;
+    
+    const toggleIcon = hasChildren ? 
+        (page.expanded ? '▼' : '▶') : '';
+    
+    pageItem.innerHTML = `
+        ${toggleIcon ? `<span class="page-toggle" data-page-id="${page.id}">${toggleIcon}</span>` : '<span class="page-toggle-spacer"></span>'}
+        <span class="page-item-icon">${icon}</span>
+        <span class="page-item-title">${escapeHtml(page.title)}</span>
+        <button class="page-add-child" data-page-id="${page.id}" title="Add child page">+</button>
+    `;
+    
+    pageItem.querySelector('.page-item-title').addEventListener('click', () => loadPage(page.id));
+    pageItem.querySelector('.page-item-icon').addEventListener('click', () => loadPage(page.id));
+    
+    if (toggleIcon) {
+        pageItem.querySelector('.page-toggle').addEventListener('click', (e) => {
+            e.stopPropagation();
+            togglePageExpanded(page.id);
+        });
+    }
+    
+    pageItem.querySelector('.page-add-child').addEventListener('click', (e) => {
+        e.stopPropagation();
+        createChildPage(page.id);
+    });
+    
+    pagesList.appendChild(pageItem);
+    
+    // Render children if expanded
+    if (page.expanded && hasChildren) {
+        children.forEach(child => {
+            renderPageItem(child, level + 1);
+        });
+    }
+}
+
+// Toggle page expansion
+function togglePageExpanded(pageId) {
+    const page = pages.find(p => p.id === pageId);
+    if (page) {
+        page.expanded = !page.expanded;
+        savePages();
+        renderPagesList();
+    }
+}
+
+// Create a child page
+function createChildPage(parentId) {
+    const newPage = {
+        id: Date.now().toString(),
+        title: 'Untitled',
+        icon: '📄',
+        blocks: [
+            {
+                id: generateId(),
+                type: BLOCK_TYPES.TEXT,
+                content: '',
+                properties: {}
+            }
+        ],
+        properties: {
+            tags: [],
+            status: '',
+            created: new Date().toISOString(),
+            updated: new Date().toISOString()
+        },
+        parentId: parentId,
+        expanded: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+    };
+    
+    // Expand parent
+    const parent = pages.find(p => p.id === parentId);
+    if (parent) {
+        parent.expanded = true;
+    }
+    
+    pages.push(newPage);
+    savePages();
+    renderPagesList();
+    loadPage(newPage.id);
 }
 
 // Load a specific page
@@ -134,11 +219,54 @@ function loadPage(pageId) {
     currentPageId = pageId;
     pageTitle.value = page.title;
     
+    // Render breadcrumbs
+    renderBreadcrumbs(page);
+    
     // Render blocks
     renderBlocks(page.blocks || []);
     
     hideWelcomeScreen();
     renderPagesList();
+}
+
+// Render breadcrumbs
+function renderBreadcrumbs(page) {
+    const breadcrumbsContainer = document.getElementById('breadcrumbs');
+    if (!breadcrumbsContainer) return;
+    
+    const breadcrumbs = [];
+    let currentPage = page;
+    
+    // Build breadcrumb trail
+    while (currentPage) {
+        breadcrumbs.unshift(currentPage);
+        if (currentPage.parentId) {
+            currentPage = pages.find(p => p.id === currentPage.parentId);
+        } else {
+            currentPage = null;
+        }
+    }
+    
+    // Render breadcrumbs
+    breadcrumbsContainer.innerHTML = breadcrumbs.map((p, index) => {
+        const icon = p.icon || '📄';
+        const isLast = index === breadcrumbs.length - 1;
+        return `
+            <span class="breadcrumb-item ${isLast ? 'active' : ''}" data-page-id="${p.id}">
+                <span class="breadcrumb-icon">${icon}</span>
+                <span class="breadcrumb-title">${escapeHtml(p.title)}</span>
+            </span>
+            ${!isLast ? '<span class="breadcrumb-separator">/</span>' : ''}
+        `;
+    }).join('');
+    
+    // Add click handlers
+    breadcrumbsContainer.querySelectorAll('.breadcrumb-item:not(.active)').forEach(item => {
+        item.addEventListener('click', () => {
+            const pageId = item.dataset.pageId;
+            loadPage(pageId);
+        });
+    });
 }
 
 // Render blocks in the editor
