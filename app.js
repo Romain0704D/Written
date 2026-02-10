@@ -541,7 +541,8 @@ function createBlockContent(block) {
                 <button class="table-remove-col">− Colonne</button>
             `;
             tableControls.querySelector('.table-add-row').addEventListener('click', () => {
-                block.properties.tableData.push(new Array(block.properties.tableData[0].length).fill(''));
+                const cols = (block.properties.tableData[0] || []).length || 2;
+                block.properties.tableData.push(new Array(cols).fill(''));
                 saveCurrentPage();
                 addToHistory('Ligne ajoutée');
                 const page = pages.find(p => p.id === currentPageId);
@@ -1256,8 +1257,8 @@ function parseMarkdownToBlocks(md) {
             blocks.push({ id: generateId(), type: BLOCK_TYPES.HEADING2, content: line.slice(3), properties: {} });
         } else if (line.startsWith('# ')) {
             blocks.push({ id: generateId(), type: BLOCK_TYPES.HEADING1, content: line.slice(2), properties: {} });
-        } else if (/^- \[[ x]\] /.test(line)) {
-            const checked = line.charAt(3) === 'x';
+        } else if (/^- \[[ xX]\] /.test(line)) {
+            const checked = line.charAt(3).toLowerCase() === 'x';
             blocks.push({ id: generateId(), type: BLOCK_TYPES.TODO, content: line.slice(6), properties: { checked } });
         } else if (line.startsWith('- ')) {
             blocks.push({ id: generateId(), type: BLOCK_TYPES.BULLETED_LIST, content: line.slice(2), properties: {} });
