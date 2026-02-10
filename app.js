@@ -8,6 +8,9 @@ let history = [];
 let historyIndex = -1;
 const MAX_HISTORY = 50;
 
+// Cursor proximity threshold for block navigation (pixels)
+const CURSOR_EDGE_THRESHOLD = 5;
+
 // Constants
 const PARAGRAPH_BREAK_MARKER = '___PARAGRAPH_BREAK___';
 
@@ -22,7 +25,8 @@ const BLOCK_TYPES = {
     NUMBERED_LIST: 'numbered_list',
     CODE: 'code',
     QUOTE: 'quote',
-    DIVIDER: 'divider'
+    DIVIDER: 'divider',
+    TABLE: 'table'
 };
 
 // DOM Elements
@@ -31,9 +35,13 @@ const newPageBtn = document.getElementById('newPageBtn');
 const pageTitle = document.getElementById('pageTitle');
 const blocksContainer = document.getElementById('blocksContainer');
 const exportBtn = document.getElementById('exportBtn');
+const pdfExportBtn = document.getElementById('pdfExportBtn');
 const deleteBtn = document.getElementById('deleteBtn');
 const undoBtn = document.getElementById('undoBtn');
 const redoBtn = document.getElementById('redoBtn');
+const darkModeToggle = document.getElementById('darkModeToggle');
+const importBtn = document.getElementById('importBtn');
+const importFileInput = document.getElementById('importFileInput');
 const editorContainer = document.querySelector('.editor-container');
 const welcomeScreen = document.getElementById('welcomeScreen');
 
@@ -42,6 +50,12 @@ function init() {
     loadPages();
     setupEventListeners();
     renderPagesList();
+    
+    // Restore dark mode preference
+    if (localStorage.getItem('written-dark-mode') === 'true') {
+        document.body.classList.add('dark-mode');
+        darkModeToggle.textContent = '☀️ Mode clair';
+    }
     
     // If there are pages, load the first one
     if (pages.length > 0) {
@@ -56,9 +70,13 @@ function setupEventListeners() {
     newPageBtn.addEventListener('click', createNewPage);
     pageTitle.addEventListener('input', updatePageTitle);
     exportBtn.addEventListener('click', exportCurrentPage);
+    pdfExportBtn.addEventListener('click', exportPDF);
     deleteBtn.addEventListener('click', deleteCurrentPage);
     undoBtn.addEventListener('click', undo);
     redoBtn.addEventListener('click', redo);
+    darkModeToggle.addEventListener('click', toggleDarkMode);
+    importBtn.addEventListener('click', () => importFileInput.click());
+    importFileInput.addEventListener('change', handleImportFile);
     
     // Global keyboard shortcuts
     document.addEventListener('keydown', handleGlobalShortcuts);
@@ -425,11 +443,13 @@ function createBlockElement(block, index) {
         <button class="block-drag-handle" title="Glisser pour réorganiser">⋮⋮</button>
         <button class="block-add" title="Ajouter un bloc en dessous">+</button>
         <button class="block-menu" title="Changer le type">⚙</button>
+        <button class="block-settings" title="Paramètres du bloc">🎨</button>
         <button class="block-delete" title="Supprimer ce bloc">×</button>
     `;
     
     controls.querySelector('.block-add').addEventListener('click', () => addBlockAfter(index));
     controls.querySelector('.block-menu').addEventListener('click', (e) => showBlockMenu(e, block, index));
+    controls.querySelector('.block-settings').addEventListener('click', (e) => showBlockSettingsPanel(e, block));
     controls.querySelector('.block-delete').addEventListener('click', () => deleteBlock(block.id));
     
     blockEl.appendChild(controls);
@@ -489,6 +509,83 @@ function createBlockContent(block) {
         case BLOCK_TYPES.DIVIDER:
             contentDiv.innerHTML = `<hr class="block-divider">`;
             break;
+        case BLOCK_TYPES.TABLE:
+            const tableData = block.properties?.tableData || [['', ''], ['', '']];
+            const tableWrapper = document.createElement('div');
+            tableWrapper.className = 'block-table-wrapper';
+            const table = document.createElement('table');
+            table.className = 'block-table';
+            tableData.forEach((row, rowIdx) => {
+                const tr = document.createElement('tr');
+                row.forEach((cell, colIdx) => {
+                    const td = document.createElement('td');
+                    td.contentEditable = 'true';
+                    td.textContent = cell;
+                    td.addEventListener('input', () => {
+                        block.properties = block.properties || {};
+                        block.properties.tableData = block.properties.tableData || tableData;
+                        block.properties.tableData[rowIdx][colIdx] = td.textContent;
+                        saveCurrentPage();
+                    });
+                    tr.appendChild(td);
+                });
+                table.appendChild(tr);
+            });
+            tableWrapper.appendChild(table);
+            const tableControls = document.createElement('div');
+            tableControls.className = 'block-table-controls';
+            tableControls.innerHTML = `
+                <button class="table-add-row">+ Ligne</button>
+                <button class="table-remove-row">− Ligne</button>
+                <button class="table-add-col">+ Colonne</button>
+                <button class="table-remove-col">− Colonne</button>
+            `;
+            tableControls.querySelector('.table-add-row').addEventListener('click', () => {
+                block.properties.tableData.push(new Array(block.properties.tableData[0].length).fill(''));
+                saveCurrentPage();
+                addToHistory('Ligne ajoutée');
+                const page = pages.find(p => p.id === currentPageId);
+                if (page) renderBlocks(page.blocks);
+            });
+            tableControls.querySelector('.table-remove-row').addEventListener('click', () => {
+                if (block.properties.tableData.length > 1) {
+                    block.properties.tableData.pop();
+                    saveCurrentPage();
+                    addToHistory('Ligne supprimée');
+                    const page = pages.find(p => p.id === currentPageId);
+                    if (page) renderBlocks(page.blocks);
+                }
+            });
+            tableControls.querySelector('.table-add-col').addEventListener('click', () => {
+                block.properties.tableData.forEach(row => row.push(''));
+                saveCurrentPage();
+                addToHistory('Colonne ajoutée');
+                const page = pages.find(p => p.id === currentPageId);
+                if (page) renderBlocks(page.blocks);
+            });
+            tableControls.querySelector('.table-remove-col').addEventListener('click', () => {
+                if (block.properties.tableData[0].length > 1) {
+                    block.properties.tableData.forEach(row => row.pop());
+                    saveCurrentPage();
+                    addToHistory('Colonne supprimée');
+                    const page = pages.find(p => p.id === currentPageId);
+                    if (page) renderBlocks(page.blocks);
+                }
+            });
+            tableWrapper.appendChild(tableControls);
+            contentDiv.appendChild(tableWrapper);
+            break;
+    }
+    
+    // Apply block properties (color, alignment)
+    const styledEl = contentDiv.querySelector('[contenteditable="true"]') || contentDiv.querySelector('.block-divider') || contentDiv.querySelector('.block-table-wrapper');
+    if (styledEl) {
+        if (block.properties?.color) {
+            styledEl.style.color = block.properties.color;
+        }
+        if (block.properties?.align) {
+            styledEl.style.textAlign = block.properties.align;
+        }
     }
     
     // Add input listeners
@@ -597,6 +694,62 @@ function handleBlockKeydown(e, block) {
         e.preventDefault();
         showBlockTypeMenu(e, block);
     }
+    
+    // ArrowUp - focus previous block
+    if (e.key === 'ArrowUp') {
+        const page = pages.find(p => p.id === currentPageId);
+        if (!page) return;
+        const blockIndex = page.blocks.findIndex(b => b.id === block.id);
+        if (blockIndex > 0) {
+            const sel = window.getSelection();
+            const range = sel.getRangeAt(0);
+            const rect = range.getBoundingClientRect();
+            const editable = e.target;
+            const editableRect = editable.getBoundingClientRect();
+            // Only navigate if cursor is at the top of the block
+            if (rect.top - editableRect.top < CURSOR_EDGE_THRESHOLD) {
+                e.preventDefault();
+                const prevBlock = page.blocks[blockIndex - 1];
+                const prevEl = document.querySelector(`[data-block-id="${prevBlock.id}"] [contenteditable="true"]`);
+                if (prevEl) {
+                    prevEl.focus();
+                    const r = document.createRange();
+                    r.selectNodeContents(prevEl);
+                    r.collapse(false);
+                    sel.removeAllRanges();
+                    sel.addRange(r);
+                }
+            }
+        }
+    }
+    
+    // ArrowDown - focus next block
+    if (e.key === 'ArrowDown') {
+        const page = pages.find(p => p.id === currentPageId);
+        if (!page) return;
+        const blockIndex = page.blocks.findIndex(b => b.id === block.id);
+        if (blockIndex < page.blocks.length - 1) {
+            const sel = window.getSelection();
+            const range = sel.getRangeAt(0);
+            const rect = range.getBoundingClientRect();
+            const editable = e.target;
+            const editableRect = editable.getBoundingClientRect();
+            // Only navigate if cursor is at the bottom of the block
+            if (editableRect.bottom - rect.bottom < CURSOR_EDGE_THRESHOLD) {
+                e.preventDefault();
+                const nextBlock = page.blocks[blockIndex + 1];
+                const nextEl = document.querySelector(`[data-block-id="${nextBlock.id}"] [contenteditable="true"]`);
+                if (nextEl) {
+                    nextEl.focus();
+                    const r = document.createRange();
+                    r.selectNodeContents(nextEl);
+                    r.collapse(true);
+                    sel.removeAllRanges();
+                    sel.addRange(r);
+                }
+            }
+        }
+    }
 }
 
 // Add block after index
@@ -667,6 +820,7 @@ function showBlockTypeMenu(e, block) {
         <div class="menu-item" data-type="${BLOCK_TYPES.CODE}">💻 Code</div>
         <div class="menu-item" data-type="${BLOCK_TYPES.QUOTE}">❝ Citation</div>
         <div class="menu-item" data-type="${BLOCK_TYPES.DIVIDER}">— Séparateur</div>
+        <div class="menu-item" data-type="${BLOCK_TYPES.TABLE}">📊 Tableau</div>
     `;
     
     // Position menu
@@ -676,13 +830,34 @@ function showBlockTypeMenu(e, block) {
     menu.style.top = (rect.bottom + 5) + 'px';
     menu.style.zIndex = '1000';
     
-    // Handle click
-    menu.addEventListener('click', (e) => {
-        const type = e.target.dataset.type;
+    document.body.appendChild(menu);
+    
+    // Fix off-screen positioning
+    const menuRect = menu.getBoundingClientRect();
+    if (menuRect.bottom > window.innerHeight) {
+        menu.style.top = Math.max(0, rect.top - menuRect.height - 5) + 'px';
+    }
+    
+    const items = menu.querySelectorAll('.menu-item');
+    let activeIndex = 0;
+    
+    function setActiveItem(index) {
+        items.forEach(item => item.classList.remove('active'));
+        activeIndex = index;
+        items[activeIndex].classList.add('active');
+        items[activeIndex].scrollIntoView({ block: 'nearest' });
+    }
+    
+    function selectItem(type) {
         if (type) {
             const oldType = block.type;
             block.type = type;
             if (type === BLOCK_TYPES.DIVIDER) {
+                block.content = '';
+            }
+            if (type === BLOCK_TYPES.TABLE) {
+                block.properties = block.properties || {};
+                block.properties.tableData = [['', ''], ['', '']];
                 block.content = '';
             }
             saveCurrentPage();
@@ -690,21 +865,54 @@ function showBlockTypeMenu(e, block) {
             const page = pages.find(p => p.id === currentPageId);
             if (page) renderBlocks(page.blocks);
         }
-        menu.remove();
+        cleanup();
+    }
+    
+    // Focus first item
+    setActiveItem(0);
+    
+    // Keyboard handler
+    function handleMenuKeydown(evt) {
+        if (evt.key === 'ArrowDown') {
+            evt.preventDefault();
+            setActiveItem((activeIndex + 1) % items.length);
+        } else if (evt.key === 'ArrowUp') {
+            evt.preventDefault();
+            setActiveItem((activeIndex - 1 + items.length) % items.length);
+        } else if (evt.key === 'Enter') {
+            evt.preventDefault();
+            selectItem(items[activeIndex].dataset.type);
+        } else if (evt.key === 'Escape') {
+            evt.preventDefault();
+            cleanup();
+        }
+    }
+    
+    document.addEventListener('keydown', handleMenuKeydown);
+    
+    // Handle click
+    menu.addEventListener('click', (evt) => {
+        const type = evt.target.dataset.type;
+        if (type) {
+            selectItem(type);
+        }
     });
     
+    function cleanup() {
+        menu.remove();
+        document.removeEventListener('keydown', handleMenuKeydown);
+        document.removeEventListener('click', closeMenu);
+    }
+    
     // Close on outside click after a small delay to avoid immediate closure
+    const closeMenu = (evt) => {
+        if (!menu.contains(evt.target)) {
+            cleanup();
+        }
+    };
     setTimeout(() => {
-        const closeMenu = (e) => {
-            if (!menu.contains(e.target)) {
-                menu.remove();
-                document.removeEventListener('click', closeMenu);
-            }
-        };
         document.addEventListener('click', closeMenu);
     }, 100);
-    
-    document.body.appendChild(menu);
 }
 
 // Drag and drop handlers
@@ -886,6 +1094,9 @@ function exportCurrentPage() {
             case BLOCK_TYPES.DIVIDER:
                 markdown += `---\n\n`;
                 break;
+            case BLOCK_TYPES.TABLE:
+                markdown += exportTableAsMarkdown(block.properties?.tableData);
+                break;
         }
     });
     
@@ -906,7 +1117,14 @@ function deleteCurrentPage() {
     
     if (confirm('Êtes-vous sûr de vouloir supprimer cette page ?')) {
         const deletedPage = pages.find(p => p.id === currentPageId);
-        pages = pages.filter(p => p.id !== currentPageId);
+        // Collect all descendant page IDs
+        const idsToDelete = new Set();
+        function collectDescendants(pageId) {
+            idsToDelete.add(pageId);
+            pages.filter(p => p.parentId === pageId).forEach(child => collectDescendants(child.id));
+        }
+        collectDescendants(currentPageId);
+        pages = pages.filter(p => !idsToDelete.has(p.id));
         savePages();
         addToHistory('Page supprimée: ' + (deletedPage?.title || 'Sans titre'));
         
@@ -949,6 +1167,222 @@ function debounce(func, wait) {
         clearTimeout(timeout);
         timeout = setTimeout(later, wait);
     };
+}
+
+// Toggle dark mode
+function toggleDarkMode() {
+    const isDark = document.body.classList.toggle('dark-mode');
+    localStorage.setItem('written-dark-mode', isDark);
+    darkModeToggle.textContent = isDark ? '☀️ Mode clair' : '🌙 Mode sombre';
+}
+
+// Export as PDF using print
+function exportPDF() {
+    window.print();
+}
+
+// Handle markdown file import
+function handleImportFile(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        const content = event.target.result;
+        const blocks = parseMarkdownToBlocks(content);
+        const title = file.name.replace(/\.md$/i, '');
+        
+        const newPage = {
+            id: Date.now().toString(),
+            title: title,
+            icon: '📄',
+            blocks: blocks.length > 0 ? blocks : [{ id: generateId(), type: BLOCK_TYPES.TEXT, content: '', properties: {} }],
+            properties: {
+                tags: [],
+                status: '',
+                created: new Date().toISOString(),
+                updated: new Date().toISOString()
+            },
+            parentId: null,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+        
+        pages.unshift(newPage);
+        savePages();
+        addToHistory('Page importée: ' + title);
+        renderPagesList();
+        loadPage(newPage.id, false);
+    };
+    reader.readAsText(file);
+    // Reset input so same file can be imported again
+    importFileInput.value = '';
+}
+
+// Parse markdown content into blocks
+function parseMarkdownToBlocks(md) {
+    const lines = md.split('\n');
+    const blocks = [];
+    let inCodeBlock = false;
+    let codeContent = '';
+    
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        
+        if (line.startsWith('```')) {
+            if (inCodeBlock) {
+                blocks.push({ id: generateId(), type: BLOCK_TYPES.CODE, content: codeContent, properties: {} });
+                codeContent = '';
+                inCodeBlock = false;
+            } else {
+                inCodeBlock = true;
+                codeContent = '';
+            }
+            continue;
+        }
+        
+        if (inCodeBlock) {
+            codeContent += (codeContent ? '\n' : '') + line;
+            continue;
+        }
+        
+        if (line.trim() === '') continue;
+        
+        if (line.trim() === '---') {
+            blocks.push({ id: generateId(), type: BLOCK_TYPES.DIVIDER, content: '', properties: {} });
+        } else if (line.startsWith('### ')) {
+            blocks.push({ id: generateId(), type: BLOCK_TYPES.HEADING3, content: line.slice(4), properties: {} });
+        } else if (line.startsWith('## ')) {
+            blocks.push({ id: generateId(), type: BLOCK_TYPES.HEADING2, content: line.slice(3), properties: {} });
+        } else if (line.startsWith('# ')) {
+            blocks.push({ id: generateId(), type: BLOCK_TYPES.HEADING1, content: line.slice(2), properties: {} });
+        } else if (/^- \[[ x]\] /.test(line)) {
+            const checked = line.charAt(3) === 'x';
+            blocks.push({ id: generateId(), type: BLOCK_TYPES.TODO, content: line.slice(6), properties: { checked } });
+        } else if (line.startsWith('- ')) {
+            blocks.push({ id: generateId(), type: BLOCK_TYPES.BULLETED_LIST, content: line.slice(2), properties: {} });
+        } else if (/^\d+\. /.test(line)) {
+            blocks.push({ id: generateId(), type: BLOCK_TYPES.NUMBERED_LIST, content: line.replace(/^\d+\. /, ''), properties: {} });
+        } else if (line.startsWith('> ')) {
+            blocks.push({ id: generateId(), type: BLOCK_TYPES.QUOTE, content: line.slice(2), properties: {} });
+        } else {
+            blocks.push({ id: generateId(), type: BLOCK_TYPES.TEXT, content: line, properties: {} });
+        }
+    }
+    
+    // Handle unclosed code block
+    if (inCodeBlock && codeContent) {
+        blocks.push({ id: generateId(), type: BLOCK_TYPES.CODE, content: codeContent, properties: {} });
+    }
+    
+    return blocks;
+}
+
+// Show block settings panel (color, alignment)
+function showBlockSettingsPanel(e, block) {
+    e.stopPropagation();
+    
+    // Remove existing panel
+    const existing = document.querySelector('.block-settings-panel');
+    if (existing) existing.remove();
+    
+    const colors = [
+        { name: 'default', value: '' },
+        { name: 'red', value: '#eb5757' },
+        { name: 'blue', value: '#2f80ed' },
+        { name: 'green', value: '#27ae60' },
+        { name: 'yellow', value: '#f2c94c' },
+        { name: 'purple', value: '#9b51e0' }
+    ];
+    
+    const currentColor = block.properties?.color || '';
+    const currentAlign = block.properties?.align || 'left';
+    
+    const panel = document.createElement('div');
+    panel.className = 'block-settings-panel';
+    
+    panel.innerHTML = `
+        <div class="settings-section">
+            <h4>Couleur</h4>
+            <div class="color-options">
+                ${colors.map(c => `<div class="color-option ${currentColor === c.value ? 'selected' : ''}" data-color="${c.value}" style="background-color: ${c.value || '#37352f'}" title="${c.name}"></div>`).join('')}
+            </div>
+        </div>
+        <div class="settings-section">
+            <h4>Alignement</h4>
+            <div class="align-options">
+                <button class="align-option ${currentAlign === 'left' ? 'selected' : ''}" data-align="left">↤</button>
+                <button class="align-option ${currentAlign === 'center' ? 'selected' : ''}" data-align="center">↔</button>
+                <button class="align-option ${currentAlign === 'right' ? 'selected' : ''}" data-align="right">↦</button>
+            </div>
+        </div>
+    `;
+    
+    const rect = e.target.getBoundingClientRect();
+    panel.style.left = rect.left + 'px';
+    panel.style.top = (rect.bottom + 5) + 'px';
+    
+    document.body.appendChild(panel);
+    
+    // Fix off-screen
+    const panelRect = panel.getBoundingClientRect();
+    if (panelRect.bottom > window.innerHeight) {
+        panel.style.top = Math.max(0, rect.top - panelRect.height - 5) + 'px';
+    }
+    if (panelRect.right > window.innerWidth) {
+        panel.style.left = Math.max(0, window.innerWidth - panelRect.width - 10) + 'px';
+    }
+    
+    // Color click handlers
+    panel.querySelectorAll('.color-option').forEach(opt => {
+        opt.addEventListener('click', () => {
+            block.properties = block.properties || {};
+            block.properties.color = opt.dataset.color;
+            saveCurrentPage();
+            addToHistory('Couleur du bloc modifiée');
+            const page = pages.find(p => p.id === currentPageId);
+            if (page) renderBlocks(page.blocks);
+            panel.remove();
+        });
+    });
+    
+    // Align click handlers
+    panel.querySelectorAll('.align-option').forEach(opt => {
+        opt.addEventListener('click', () => {
+            block.properties = block.properties || {};
+            block.properties.align = opt.dataset.align;
+            saveCurrentPage();
+            addToHistory('Alignement du bloc modifié');
+            const page = pages.find(p => p.id === currentPageId);
+            if (page) renderBlocks(page.blocks);
+            panel.remove();
+        });
+    });
+    
+    // Close on outside click
+    setTimeout(() => {
+        const closePanel = (evt) => {
+            if (!panel.contains(evt.target)) {
+                panel.remove();
+                document.removeEventListener('click', closePanel);
+            }
+        };
+        document.addEventListener('click', closePanel);
+    }, 100);
+}
+
+// Export table blocks as markdown
+function exportTableAsMarkdown(tableData) {
+    if (!tableData || tableData.length === 0) return '';
+    const cols = tableData[0].length;
+    let md = '';
+    tableData.forEach((row, idx) => {
+        md += '| ' + row.map(cell => cell || ' ').join(' | ') + ' |\n';
+        if (idx === 0) {
+            md += '| ' + new Array(cols).fill('---').join(' | ') + ' |\n';
+        }
+    });
+    return md + '\n';
 }
 
 // Utility function: escape HTML

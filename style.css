@@ -31,6 +31,9 @@ body {
 .sidebar-header {
     padding: 20px;
     border-bottom: 1px solid #e0e0e0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
 .sidebar-header h1 {
@@ -41,7 +44,7 @@ body {
 
 .btn-primary {
     width: 100%;
-    padding: 10px 14px;
+    padding: 12px 16px;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     border: none;
@@ -63,7 +66,7 @@ body {
 }
 
 .page-item {
-    padding: 8px 12px;
+    padding: 10px 14px;
     margin-bottom: 4px;
     border-radius: 4px;
     cursor: pointer;
@@ -213,7 +216,7 @@ body {
 .page-title-input {
     flex: 1;
     border: none;
-    font-size: 32px;
+    font-size: 36px;
     font-weight: 700;
     outline: none;
     background: transparent;
@@ -306,7 +309,7 @@ body {
 
 .block-controls {
     display: flex;
-    gap: 4px;
+    gap: 2px;
     opacity: 0;
     transition: opacity 0.2s;
     flex-shrink: 0;
@@ -344,6 +347,7 @@ body {
 
 .block-drag-handle {
     cursor: grab;
+    letter-spacing: -2px; /* tighter spacing for drag handle dots */
 }
 
 .block-drag-handle:active {
@@ -374,7 +378,7 @@ body {
 }
 
 .block-text {
-    min-height: 24px;
+    min-height: 28px;
     line-height: 1.6;
 }
 
@@ -394,15 +398,15 @@ body {
 }
 
 h1.block-heading {
-    font-size: 28px;
+    font-size: 32px;
 }
 
 h2.block-heading {
-    font-size: 22px;
+    font-size: 26px;
 }
 
 h3.block-heading {
-    font-size: 18px;
+    font-size: 20px;
 }
 
 .block-todo {
@@ -481,7 +485,7 @@ h3.block-heading {
 }
 
 .menu-item {
-    padding: 8px 12px;
+    padding: 10px 14px;
     cursor: pointer;
     border-radius: 3px;
     transition: background-color 0.2s;
@@ -606,4 +610,365 @@ h3.block-heading {
 
 ::-webkit-scrollbar-thumb:hover {
     background: #a8a8a8;
+}
+
+/* Active menu item (keyboard navigation) */
+.menu-item.active {
+    background-color: #e0ddd7;
+}
+
+/* Block settings panel */
+.block-settings-panel {
+    position: fixed;
+    background-color: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    padding: 12px;
+    z-index: 1000;
+    min-width: 200px;
+}
+
+.block-settings-panel h4 {
+    font-size: 12px;
+    color: #9b9a97;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+}
+
+.block-settings-panel .settings-section {
+    margin-bottom: 12px;
+}
+
+.block-settings-panel .settings-section:last-child {
+    margin-bottom: 0;
+}
+
+.block-settings-panel .color-options {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.block-settings-panel .color-option {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.block-settings-panel .color-option:hover {
+    transform: scale(1.2);
+}
+
+.block-settings-panel .color-option.selected {
+    border-color: #37352f;
+}
+
+.block-settings-panel .align-options {
+    display: flex;
+    gap: 4px;
+}
+
+.block-settings-panel .align-option {
+    padding: 4px 10px;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    cursor: pointer;
+    background: none;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.block-settings-panel .align-option:hover {
+    background-color: #f7f6f3;
+}
+
+.block-settings-panel .align-option.selected {
+    background-color: #e0ddd7;
+    border-color: #37352f;
+}
+
+/* Table block */
+.block-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.block-table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+}
+
+.block-table td {
+    border: 1px solid #e0e0e0;
+    padding: 8px 12px;
+    min-width: 80px;
+    outline: none;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.block-table td:focus {
+    background-color: #f0f0ff;
+}
+
+.block-table-controls {
+    display: flex;
+    gap: 6px;
+    margin-top: 6px;
+}
+
+.block-table-controls button {
+    padding: 4px 8px;
+    font-size: 12px;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    background: #f7f6f3;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.block-table-controls button:hover {
+    background-color: #e0ddd7;
+}
+
+/* Dark mode */
+body.dark-mode {
+    background-color: #1e1e1e;
+    color: #d4d4d4;
+}
+
+body.dark-mode .sidebar {
+    background-color: #252526;
+    border-right-color: #3c3c3c;
+}
+
+body.dark-mode .sidebar-header {
+    border-bottom-color: #3c3c3c;
+}
+
+body.dark-mode .sidebar-header h1 {
+    color: #d4d4d4;
+}
+
+body.dark-mode .page-item:hover,
+body.dark-mode .page-item.active {
+    background-color: #37373d;
+}
+
+body.dark-mode .page-item-title {
+    color: #d4d4d4;
+}
+
+body.dark-mode .page-title-input {
+    color: #d4d4d4;
+}
+
+body.dark-mode .page-title-input::placeholder {
+    color: #6b6b6b;
+}
+
+body.dark-mode .editor-header {
+    border-bottom-color: #3c3c3c;
+}
+
+body.dark-mode .btn-secondary {
+    background-color: #2d2d2d;
+    color: #d4d4d4;
+    border-color: #3c3c3c;
+}
+
+body.dark-mode .btn-secondary:hover:not(:disabled) {
+    background-color: #37373d;
+}
+
+body.dark-mode .block:hover {
+    background-color: #2a2a2a;
+}
+
+body.dark-mode .block-text:focus,
+body.dark-mode .block-heading:focus,
+body.dark-mode .block-code:focus,
+body.dark-mode .block-quote:focus {
+    background-color: #1e1e1e;
+}
+
+body.dark-mode .block-code {
+    background-color: #2d2d2d;
+}
+
+body.dark-mode .block-quote {
+    border-left-color: #3c3c3c;
+    color: #9b9a97;
+}
+
+body.dark-mode .block-divider {
+    border-top-color: #3c3c3c;
+}
+
+body.dark-mode .block-type-menu {
+    background-color: #252526;
+    border-color: #3c3c3c;
+}
+
+body.dark-mode .menu-item:hover,
+body.dark-mode .menu-item.active {
+    background-color: #37373d;
+}
+
+body.dark-mode .menu-item {
+    color: #d4d4d4;
+}
+
+body.dark-mode .block-settings-panel {
+    background-color: #252526;
+    border-color: #3c3c3c;
+}
+
+body.dark-mode .block-settings-panel .align-option {
+    border-color: #3c3c3c;
+    color: #d4d4d4;
+}
+
+body.dark-mode .block-settings-panel .align-option:hover {
+    background-color: #37373d;
+}
+
+body.dark-mode .block-settings-panel .align-option.selected {
+    background-color: #37373d;
+    border-color: #d4d4d4;
+}
+
+body.dark-mode .block-table {
+    border-color: #3c3c3c;
+}
+
+body.dark-mode .block-table td {
+    border-color: #3c3c3c;
+    color: #d4d4d4;
+}
+
+body.dark-mode .block-table td:focus {
+    background-color: #2a2d3e;
+}
+
+body.dark-mode .block-table-controls button {
+    background: #2d2d2d;
+    border-color: #3c3c3c;
+    color: #d4d4d4;
+}
+
+body.dark-mode .block-table-controls button:hover {
+    background-color: #37373d;
+}
+
+body.dark-mode .welcome-screen h2 {
+    -webkit-text-fill-color: transparent;
+}
+
+body.dark-mode .welcome-screen > p {
+    color: #9b9a97;
+}
+
+body.dark-mode .feature {
+    background: linear-gradient(135deg, #2d2d2d 0%, #37373d 100%);
+    color: #d4d4d4;
+}
+
+body.dark-mode .welcome-shortcuts {
+    background-color: #252526;
+}
+
+body.dark-mode .welcome-shortcuts h3 {
+    color: #d4d4d4;
+}
+
+body.dark-mode .shortcut {
+    background-color: #2d2d2d;
+    border-color: #3c3c3c;
+    color: #d4d4d4;
+}
+
+body.dark-mode .shortcut kbd {
+    background-color: #37373d;
+    border-color: #4e4e4e;
+    color: #d4d4d4;
+}
+
+body.dark-mode .breadcrumb-item:not(.active):hover {
+    background-color: #37373d;
+}
+
+body.dark-mode .breadcrumb-separator {
+    color: #6b6b6b;
+}
+
+body.dark-mode .block-controls button:hover {
+    background-color: #37373d;
+    color: #d4d4d4;
+}
+
+body.dark-mode .page-add-child:hover {
+    background-color: #37373d;
+    color: #d4d4d4;
+}
+
+/* Print styles */
+@media print {
+    .sidebar,
+    .editor-actions,
+    .block-controls,
+    .welcome-screen,
+    .breadcrumbs,
+    #darkModeToggle,
+    #importBtn,
+    #importFileInput {
+        display: none !important;
+    }
+
+    .app-container {
+        display: block;
+    }
+
+    .main-content {
+        overflow: visible;
+    }
+
+    .editor-container {
+        display: block !important;
+    }
+
+    .editor-header {
+        border-bottom: none;
+        padding: 0 0 20px 0;
+    }
+
+    .blocks-editor {
+        padding: 0;
+        overflow: visible;
+    }
+
+    .block:hover {
+        background-color: transparent;
+    }
+
+    body.dark-mode {
+        background-color: #ffffff;
+        color: #37352f;
+    }
+
+    body.dark-mode .page-title-input {
+        color: #37352f;
+    }
+
+    body.dark-mode .block-text,
+    body.dark-mode .block-heading,
+    body.dark-mode .block-quote {
+        color: #37352f;
+    }
 }
