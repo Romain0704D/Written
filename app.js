@@ -287,7 +287,7 @@ function renderBlocks(blocks) {
         blocksContainer.appendChild(blockElement);
     });
     
-    // Focus first block
+    // Focus first block if it's the only empty block
     const firstInput = blocksContainer.querySelector('[contenteditable="true"]');
     if (firstInput && blocks.length === 1 && !blocks[0].content) {
         firstInput.focus();
@@ -540,13 +540,16 @@ function showBlockTypeMenu(e, block) {
         menu.remove();
     });
     
-    // Close on outside click
+    // Close on outside click after a small delay to avoid immediate closure
     setTimeout(() => {
-        document.addEventListener('click', function closeMenu() {
-            menu.remove();
-            document.removeEventListener('click', closeMenu);
-        });
-    }, 0);
+        const closeMenu = (e) => {
+            if (!menu.contains(e.target)) {
+                menu.remove();
+                document.removeEventListener('click', closeMenu);
+            }
+        };
+        document.addEventListener('click', closeMenu);
+    }, 100);
     
     document.body.appendChild(menu);
 }
@@ -764,7 +767,7 @@ function hideWelcomeScreen() {
 
 // Utility function: generate unique ID
 function generateId() {
-    return Date.now().toString() + Math.random().toString(36).substr(2, 9);
+    return Date.now().toString() + Math.random().toString(36).substring(2, 11);
 }
 
 // Utility function: debounce
