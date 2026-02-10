@@ -148,10 +148,10 @@ function simpleMarkdownToHtml(markdown) {
     
     let html = markdown;
     
-    // Headers
-    html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
-    html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
-    html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+    // Headers (process from most specific to least specific)
+    html = html.replace(/^### (.+)$/gim, '<h3>$1</h3>');
+    html = html.replace(/^## (.+)$/gim, '<h2>$1</h2>');
+    html = html.replace(/^# (.+)$/gim, '<h1>$1</h1>');
     
     // Bold
     html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
@@ -165,19 +165,18 @@ function simpleMarkdownToHtml(markdown) {
     // Inline code
     html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
     
-    // Line breaks
-    html = html.replace(/\n\n/g, '</p><p>');
+    // Preserve headers by replacing newlines in a way that doesn't break them
+    html = html.replace(/\n\n/g, '___PARAGRAPH_BREAK___');
     html = html.replace(/\n/g, '<br>');
     
-    // Wrap in paragraphs
+    // Wrap content in paragraphs, but not headers
+    html = html.replace(/___PARAGRAPH_BREAK___/g, '</p><p>');
     html = '<p>' + html + '</p>';
     
-    // Fix empty paragraphs
+    // Fix headers wrapped in paragraphs
+    html = html.replace(/<p>(<h[123]>)/g, '$1');
+    html = html.replace(/(<\/h[123]>)<\/p>/g, '$1');
     html = html.replace(/<p><\/p>/g, '');
-    html = html.replace(/<p><h/g, '<h');
-    html = html.replace(/<\/h1><\/p>/g, '</h1>');
-    html = html.replace(/<\/h2><\/p>/g, '</h2>');
-    html = html.replace(/<\/h3><\/p>/g, '</h3>');
     
     return html;
 }
