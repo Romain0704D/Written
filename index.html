@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Written - Personal Notion-like Workspace</title>
+    <title>Written - Espace de travail personnel</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -12,7 +12,7 @@
         <aside class="sidebar">
             <div class="sidebar-header">
                 <h1>📝 Written</h1>
-                <button id="newPageBtn" class="btn-primary">+ New Page</button>
+                <button id="newPageBtn" class="btn-primary" title="Créer une nouvelle page">+ Nouvelle Page</button>
             </div>
             <div class="pages-list" id="pagesList">
                 <!-- Pages will be dynamically inserted here -->
@@ -25,11 +25,13 @@
                 <div class="editor-header">
                     <div class="editor-header-left">
                         <div id="breadcrumbs" class="breadcrumbs"></div>
-                        <input type="text" id="pageTitle" class="page-title-input" placeholder="Untitled">
+                        <input type="text" id="pageTitle" class="page-title-input" placeholder="Sans titre">
                     </div>
                     <div class="editor-actions">
-                        <button id="exportBtn" class="btn-secondary">📥 Export MD</button>
-                        <button id="deleteBtn" class="btn-danger">🗑️ Delete</button>
+                        <button id="undoBtn" class="btn-secondary" title="Annuler (Ctrl+Z)" disabled>↶ Annuler</button>
+                        <button id="redoBtn" class="btn-secondary" title="Rétablir (Ctrl+Y)" disabled>↷ Rétablir</button>
+                        <button id="exportBtn" class="btn-secondary" title="Exporter en Markdown">📥 Exporter</button>
+                        <button id="deleteBtn" class="btn-danger" title="Supprimer cette page">🗑️ Supprimer</button>
                     </div>
                 </div>
                 
@@ -43,14 +45,27 @@
 
             <!-- Welcome Screen (shown when no page is selected) -->
             <div class="welcome-screen" id="welcomeScreen">
-                <h2>👋 Welcome to Written</h2>
-                <p>Your personal Notion-like workspace</p>
-                <p>Create a new page to get started!</p>
+                <h2>👋 Bienvenue sur Written</h2>
+                <p>Votre espace de travail personnel inspiré de Notion</p>
+                <p>Créez une nouvelle page pour commencer !</p>
                 <div class="welcome-features">
-                    <div class="feature">📝 Block-based editor</div>
-                    <div class="feature">🎯 Drag & drop blocks</div>
-                    <div class="feature">✅ To-do lists</div>
-                    <div class="feature">💾 Auto-save</div>
+                    <div class="feature">📝 Éditeur par blocs</div>
+                    <div class="feature">🎯 Glisser-déposer</div>
+                    <div class="feature">✅ Listes de tâches</div>
+                    <div class="feature">💾 Sauvegarde auto</div>
+                    <div class="feature">↶ Annuler/Rétablir</div>
+                    <div class="feature">⌨️ Raccourcis clavier</div>
+                </div>
+                <div class="welcome-shortcuts">
+                    <h3>⌨️ Raccourcis clavier</h3>
+                    <div class="shortcuts-list">
+                        <div class="shortcut"><kbd>Ctrl</kbd> + <kbd>Z</kbd> : Annuler</div>
+                        <div class="shortcut"><kbd>Ctrl</kbd> + <kbd>Y</kbd> : Rétablir</div>
+                        <div class="shortcut"><kbd>Ctrl</kbd> + <kbd>N</kbd> : Nouvelle page</div>
+                        <div class="shortcut"><kbd>/</kbd> : Menu des blocs</div>
+                        <div class="shortcut"><kbd>Entrée</kbd> : Nouveau bloc</div>
+                        <div class="shortcut"><kbd>Suppr</kbd> : Supprimer bloc vide</div>
+                    </div>
                 </div>
             </div>
         </main>

@@ -3,6 +3,11 @@ let pages = [];
 let currentPageId = null;
 let draggedBlock = null;
 
+// Undo/Redo state
+let history = [];
+let historyIndex = -1;
+const MAX_HISTORY = 50;
+
 // Constants
 const PARAGRAPH_BREAK_MARKER = '___PARAGRAPH_BREAK___';
 
@@ -27,6 +32,8 @@ const pageTitle = document.getElementById('pageTitle');
 const blocksContainer = document.getElementById('blocksContainer');
 const exportBtn = document.getElementById('exportBtn');
 const deleteBtn = document.getElementById('deleteBtn');
+const undoBtn = document.getElementById('undoBtn');
+const redoBtn = document.getElementById('redoBtn');
 const editorContainer = document.querySelector('.editor-container');
 const welcomeScreen = document.getElementById('welcomeScreen');
 
@@ -50,6 +57,8 @@ function setupEventListeners() {
     pageTitle.addEventListener('input', updatePageTitle);
     exportBtn.addEventListener('click', exportCurrentPage);
     deleteBtn.addEventListener('click', deleteCurrentPage);
+    undoBtn.addEventListener('click', undo);
+    redoBtn.addEventListener('click', redo);
     
     // Global keyboard shortcuts
     document.addEventListener('keydown', handleGlobalShortcuts);
@@ -61,6 +70,20 @@ function loadPages() {
     if (savedPages) {
         pages = JSON.parse(savedPages);
     }
+    
+    // Load history
+    const savedHistory = localStorage.getItem('written-history');
+    if (savedHistory) {
+        try {
+            const parsed = JSON.parse(savedHistory);
+            history = parsed.history || [];
+            historyIndex = parsed.index || -1;
+        } catch (e) {
+            history = [];
+            historyIndex = -1;
+        }
+    }
+    updateUndoRedoButtons();
 }
 
 // Save pages to localStorage
@@ -68,11 +91,91 @@ function savePages() {
     localStorage.setItem('written-pages', JSON.stringify(pages));
 }
 
+// Save history to localStorage
+function saveHistory() {
+    localStorage.setItem('written-history', JSON.stringify({
+        history: history,
+        index: historyIndex
+    }));
+}
+
+// Add state to history
+function addToHistory(description) {
+    // Remove any future history if we're not at the end
+    if (historyIndex < history.length - 1) {
+        history = history.slice(0, historyIndex + 1);
+    }
+    
+    // Add new state
+    history.push({
+        pages: JSON.parse(JSON.stringify(pages)),
+        currentPageId: currentPageId,
+        description: description,
+        timestamp: Date.now()
+    });
+    
+    // Keep history size manageable
+    if (history.length > MAX_HISTORY) {
+        history.shift();
+    } else {
+        historyIndex++;
+    }
+    
+    saveHistory();
+    updateUndoRedoButtons();
+}
+
+// Undo action
+function undo() {
+    if (historyIndex > 0) {
+        historyIndex--;
+        restoreFromHistory();
+    }
+}
+
+// Redo action
+function redo() {
+    if (historyIndex < history.length - 1) {
+        historyIndex++;
+        restoreFromHistory();
+    }
+}
+
+// Restore state from history
+function restoreFromHistory() {
+    if (historyIndex >= 0 && historyIndex < history.length) {
+        const state = history[historyIndex];
+        pages = JSON.parse(JSON.stringify(state.pages));
+        currentPageId = state.currentPageId;
+        
+        savePages();
+        renderPagesList();
+        
+        if (currentPageId && pages.find(p => p.id === currentPageId)) {
+            loadPage(currentPageId, false); // false = don't add to history
+        } else {
+            showWelcomeScreen();
+        }
+        
+        updateUndoRedoButtons();
+    }
+}
+
+// Update undo/redo button states
+function updateUndoRedoButtons() {
+    if (undoBtn) {
+        undoBtn.disabled = historyIndex <= 0;
+    }
+    if (redoBtn) {
+        redoBtn.disabled = historyIndex >= history.length - 1;
+    }
+}
+
 // Create a new page
 function createNewPage() {
     const newPage = {
         id: Date.now().toString(),
-        title: 'Untitled',
+        title: 'Sans titre',
         icon: '📄',
         blocks: [
             {
@@ -95,8 +198,9 @@ function createNewPage() {
     
     pages.unshift(newPage);
     savePages();
+    addToHistory('Nouvelle page créée');
     renderPagesList();
-    loadPage(newPage.id);
+    loadPage(newPage.id, false); // Don't add to history again
 }
 
 // Render the pages list in the sidebar
@@ -104,7 +208,7 @@ function renderPagesList() {
     pagesList.innerHTML = '';
     
     if (pages.length === 0) {
-        pagesList.innerHTML = '<div style="padding: 20px; text-align: center; color: #9b9a97;">No pages yet</div>';
+        pagesList.innerHTML = '<div style="padding: 20px; text-align: center; color: #9b9a97;">Aucune page</div>';
         return;
     }
     
@@ -135,7 +239,7 @@ function renderPageItem(page, level) {
         ${toggleIcon ? `<span class="page-toggle" data-page-id="${page.id}">${toggleIcon}</span>` : '<span class="page-toggle-spacer"></span>'}
         <span class="page-item-icon">${icon}</span>
         <span class="page-item-title">${escapeHtml(page.title)}</span>
-        <button class="page-add-child" data-page-id="${page.id}" title="Add child page">+</button>
+        <button class="page-add-child" data-page-id="${page.id}" title="Ajouter une sous-page">+</button>
     `;
     
     pageItem.querySelector('.page-item-title').addEventListener('click', () => loadPage(page.id));
@@ -177,7 +281,7 @@ function togglePageExpanded(pageId) {
 function createChildPage(parentId) {
     const newPage = {
         id: Date.now().toString(),
-        title: 'Untitled',
+        title: 'Sans titre',
         icon: '📄',
         blocks: [
             {
@@ -207,12 +311,13 @@ function createChildPage(parentId) {
     
     pages.push(newPage);
     savePages();
+    addToHistory('Sous-page créée');
     renderPagesList();
-    loadPage(newPage.id);
+    loadPage(newPage.id, false); // Don't add to history again
 }
 
 // Load a specific page
-function loadPage(pageId) {
+function loadPage(pageId, addHistory = true) {
     const page = pages.find(p => p.id === pageId);
     if (!page) return;
     
@@ -227,6 +332,11 @@ function loadPage(pageId) {
     
     hideWelcomeScreen();
     renderPagesList();
+    
+    // Add to history if requested
+    if (addHistory) {
+        addToHistory('Page chargée: ' + page.title);
+    }
 }
 
 // Render breadcrumbs
@@ -312,13 +422,15 @@ function createBlockElement(block, index) {
     const controls = document.createElement('div');
     controls.className = 'block-controls';
     controls.innerHTML = `
-        <button class="block-drag-handle" title="Drag to reorder">⋮⋮</button>
-        <button class="block-add" title="Add block below">+</button>
-        <button class="block-menu" title="Change type">⚙</button>
+        <button class="block-drag-handle" title="Glisser pour réorganiser">⋮⋮</button>
+        <button class="block-add" title="Ajouter un bloc en dessous">+</button>
+        <button class="block-menu" title="Changer le type">⚙</button>
+        <button class="block-delete" title="Supprimer ce bloc">×</button>
     `;
     
     controls.querySelector('.block-add').addEventListener('click', () => addBlockAfter(index));
     controls.querySelector('.block-menu').addEventListener('click', (e) => showBlockMenu(e, block, index));
+    controls.querySelector('.block-delete').addEventListener('click', () => deleteBlock(block.id));
     
     blockEl.appendChild(controls);
     
@@ -336,42 +448,43 @@ function createBlockContent(block) {
     
     switch (block.type) {
         case BLOCK_TYPES.TEXT:
-            contentDiv.innerHTML = `<div class="block-text" contenteditable="true" data-placeholder="Type '/' for commands">${escapeHtml(block.content)}</div>`;
+            contentDiv.innerHTML = `<div class="block-text" contenteditable="true" data-placeholder="Tapez '/' pour les commandes">${escapeHtml(block.content)}</div>`;
             break;
         case BLOCK_TYPES.HEADING1:
-            contentDiv.innerHTML = `<h1 class="block-heading" contenteditable="true" data-placeholder="Heading 1">${escapeHtml(block.content)}</h1>`;
+            contentDiv.innerHTML = `<h1 class="block-heading" contenteditable="true" data-placeholder="Titre 1">${escapeHtml(block.content)}</h1>`;
             break;
         case BLOCK_TYPES.HEADING2:
-            contentDiv.innerHTML = `<h2 class="block-heading" contenteditable="true" data-placeholder="Heading 2">${escapeHtml(block.content)}</h2>`;
+            contentDiv.innerHTML = `<h2 class="block-heading" contenteditable="true" data-placeholder="Titre 2">${escapeHtml(block.content)}</h2>`;
             break;
         case BLOCK_TYPES.HEADING3:
-            contentDiv.innerHTML = `<h3 class="block-heading" contenteditable="true" data-placeholder="Heading 3">${escapeHtml(block.content)}</h3>`;
+            contentDiv.innerHTML = `<h3 class="block-heading" contenteditable="true" data-placeholder="Titre 3">${escapeHtml(block.content)}</h3>`;
             break;
         case BLOCK_TYPES.TODO:
             const checked = block.properties?.checked ? 'checked' : '';
             contentDiv.innerHTML = `
                 <div class="block-todo">
                     <input type="checkbox" ${checked}>
-                    <div contenteditable="true" data-placeholder="To-do">${escapeHtml(block.content)}</div>
+                    <div contenteditable="true" data-placeholder="Tâche à faire">${escapeHtml(block.content)}</div>
                 </div>
             `;
             contentDiv.querySelector('input[type="checkbox"]').addEventListener('change', (e) => {
                 block.properties = block.properties || {};
                 block.properties.checked = e.target.checked;
                 saveCurrentPage();
+                addToHistory('Tâche ' + (e.target.checked ? 'cochée' : 'décochée'));
             });
             break;
         case BLOCK_TYPES.BULLETED_LIST:
-            contentDiv.innerHTML = `<div class="block-list"><span class="list-marker">•</span><div contenteditable="true" data-placeholder="List item">${escapeHtml(block.content)}</div></div>`;
+            contentDiv.innerHTML = `<div class="block-list"><span class="list-marker">•</span><div contenteditable="true" data-placeholder="Élément de liste">${escapeHtml(block.content)}</div></div>`;
             break;
         case BLOCK_TYPES.NUMBERED_LIST:
-            contentDiv.innerHTML = `<div class="block-list"><span class="list-marker">1.</span><div contenteditable="true" data-placeholder="List item">${escapeHtml(block.content)}</div></div>`;
+            contentDiv.innerHTML = `<div class="block-list"><span class="list-marker">1.</span><div contenteditable="true" data-placeholder="Élément de liste">${escapeHtml(block.content)}</div></div>`;
             break;
         case BLOCK_TYPES.CODE:
             contentDiv.innerHTML = `<pre class="block-code" contenteditable="true" data-placeholder="Code">${escapeHtml(block.content)}</pre>`;
             break;
         case BLOCK_TYPES.QUOTE:
-            contentDiv.innerHTML = `<blockquote class="block-quote" contenteditable="true" data-placeholder="Quote">${escapeHtml(block.content)}</blockquote>`;
+            contentDiv.innerHTML = `<blockquote class="block-quote" contenteditable="true" data-placeholder="Citation">${escapeHtml(block.content)}</blockquote>`;
             break;
         case BLOCK_TYPES.DIVIDER:
             contentDiv.innerHTML = `<hr class="block-divider">`;
@@ -398,10 +511,15 @@ function updatePageTitle() {
     
     const page = pages.find(p => p.id === currentPageId);
     if (page) {
-        page.title = pageTitle.value || 'Untitled';
+        const oldTitle = page.title;
+        page.title = pageTitle.value || 'Sans titre';
         page.updatedAt = new Date().toISOString();
         savePages();
         renderPagesList();
+        
+        if (oldTitle !== page.title) {
+            addToHistory('Titre modifié: ' + page.title);
+        }
     }
 }
 
@@ -433,6 +551,7 @@ function handleBlockKeydown(e, block) {
         };
         page.blocks.splice(blockIndex + 1, 0, newBlock);
         saveCurrentPage();
+        addToHistory('Nouveau bloc créé');
         renderBlocks(page.blocks);
         
         // Focus new block
@@ -451,6 +570,7 @@ function handleBlockKeydown(e, block) {
         const blockIndex = page.blocks.findIndex(b => b.id === block.id);
         page.blocks.splice(blockIndex, 1);
         saveCurrentPage();
+        addToHistory('Bloc supprimé');
         renderBlocks(page.blocks);
         
         // Focus previous block
@@ -492,7 +612,37 @@ function addBlockAfter(index) {
     };
     page.blocks.splice(index + 1, 0, newBlock);
     saveCurrentPage();
+    addToHistory('Bloc ajouté');
     renderBlocks(page.blocks);
+}
+
+// Delete a block
+function deleteBlock(blockId) {
+    const page = pages.find(p => p.id === currentPageId);
+    if (!page) return;
+    
+    // Don't allow deleting the last block
+    if (page.blocks.length <= 1) {
+        return;
+    }
+    
+    const blockIndex = page.blocks.findIndex(b => b.id === blockId);
+    if (blockIndex === -1) return;
+    
+    const deletedBlock = page.blocks[blockIndex];
+    page.blocks.splice(blockIndex, 1);
+    saveCurrentPage();
+    addToHistory('Bloc supprimé');
+    renderBlocks(page.blocks);
+    
+    // Focus previous or next block
+    setTimeout(() => {
+        const targetIndex = Math.max(0, blockIndex - 1);
+        if (page.blocks[targetIndex]) {
+            const targetBlockEl = document.querySelector(`[data-block-id="${page.blocks[targetIndex].id}"] [contenteditable="true"]`);
+            if (targetBlockEl) targetBlockEl.focus();
+        }
+    }, 0);
 }
 
 // Show block menu
@@ -506,16 +656,16 @@ function showBlockTypeMenu(e, block) {
     const menu = document.createElement('div');
     menu.className = 'block-type-menu';
     menu.innerHTML = `
-        <div class="menu-item" data-type="${BLOCK_TYPES.TEXT}">📝 Text</div>
-        <div class="menu-item" data-type="${BLOCK_TYPES.HEADING1}">H1 Heading 1</div>
-        <div class="menu-item" data-type="${BLOCK_TYPES.HEADING2}">H2 Heading 2</div>
-        <div class="menu-item" data-type="${BLOCK_TYPES.HEADING3}">H3 Heading 3</div>
-        <div class="menu-item" data-type="${BLOCK_TYPES.TODO}">☑ To-do</div>
-        <div class="menu-item" data-type="${BLOCK_TYPES.BULLETED_LIST}">• Bulleted list</div>
-        <div class="menu-item" data-type="${BLOCK_TYPES.NUMBERED_LIST}">1. Numbered list</div>
+        <div class="menu-item" data-type="${BLOCK_TYPES.TEXT}">📝 Texte</div>
+        <div class="menu-item" data-type="${BLOCK_TYPES.HEADING1}">H1 Titre 1</div>
+        <div class="menu-item" data-type="${BLOCK_TYPES.HEADING2}">H2 Titre 2</div>
+        <div class="menu-item" data-type="${BLOCK_TYPES.HEADING3}">H3 Titre 3</div>
+        <div class="menu-item" data-type="${BLOCK_TYPES.TODO}">☑ Tâche</div>
+        <div class="menu-item" data-type="${BLOCK_TYPES.BULLETED_LIST}">• Liste à puces</div>
+        <div class="menu-item" data-type="${BLOCK_TYPES.NUMBERED_LIST}">1. Liste numérotée</div>
         <div class="menu-item" data-type="${BLOCK_TYPES.CODE}">💻 Code</div>
-        <div class="menu-item" data-type="${BLOCK_TYPES.QUOTE}">❝ Quote</div>
-        <div class="menu-item" data-type="${BLOCK_TYPES.DIVIDER}">— Divider</div>
+        <div class="menu-item" data-type="${BLOCK_TYPES.QUOTE}">❝ Citation</div>
+        <div class="menu-item" data-type="${BLOCK_TYPES.DIVIDER}">— Séparateur</div>
     `;
     
     // Position menu
@@ -529,11 +679,13 @@ function showBlockTypeMenu(e, block) {
     menu.addEventListener('click', (e) => {
         const type = e.target.dataset.type;
         if (type) {
+            const oldType = block.type;
             block.type = type;
             if (type === BLOCK_TYPES.DIVIDER) {
                 block.content = '';
             }
             saveCurrentPage();
+            addToHistory('Type de bloc changé');
             const page = pages.find(p => p.id === currentPageId);
             if (page) renderBlocks(page.blocks);
         }
@@ -607,6 +759,7 @@ function updateBlocksOrder() {
     
     page.blocks = newOrder;
     saveCurrentPage();
+    addToHistory('Blocs réorganisés');
 }
 
 // Global keyboard shortcuts
@@ -615,6 +768,18 @@ function handleGlobalShortcuts(e) {
     if ((e.metaKey || e.ctrlKey) && e.key === 'n') {
         e.preventDefault();
         createNewPage();
+    }
+    
+    // Cmd/Ctrl + Z - Undo
+    if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+    }
+    
+    // Cmd/Ctrl + Y or Cmd/Ctrl + Shift + Z - Redo
+    if ((e.metaKey || e.ctrlKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+        e.preventDefault();
+        redo();
     }
 }
 
@@ -738,12 +903,14 @@ function exportCurrentPage() {
 function deleteCurrentPage() {
     if (!currentPageId) return;
     
-    if (confirm('Are you sure you want to delete this page?')) {
+    if (confirm('Êtes-vous sûr de vouloir supprimer cette page ?')) {
+        const deletedPage = pages.find(p => p.id === currentPageId);
         pages = pages.filter(p => p.id !== currentPageId);
         savePages();
+        addToHistory('Page supprimée: ' + (deletedPage?.title || 'Sans titre'));
         
         if (pages.length > 0) {
-            loadPage(pages[0].id);
+            loadPage(pages[0].id, false);
         } else {
             currentPageId = null;
             showWelcomeScreen();
