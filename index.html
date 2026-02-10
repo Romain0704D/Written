@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Written - Personal Markdown Notebook</title>
+    <title>Written - Personal Notion-like Workspace</title>
     <link rel="stylesheet" href="style.css">
-    <script src="https://unpkg.com/marked@9.1.6/marked.min.js"></script>
 </head>
 <body>
     <div class="app-container">
@@ -31,15 +30,10 @@
                     </div>
                 </div>
                 
-                <div class="editor-layout">
-                    <!-- Markdown Editor -->
-                    <div class="editor-pane">
-                        <textarea id="markdownEditor" placeholder="Start writing in markdown..."></textarea>
-                    </div>
-                    
-                    <!-- Live Preview -->
-                    <div class="preview-pane">
-                        <div id="markdownPreview" class="markdown-preview"></div>
+                <!-- Blocks-based Editor -->
+                <div class="blocks-editor">
+                    <div id="blocksContainer" class="blocks-container">
+                        <!-- Blocks will be dynamically inserted here -->
                     </div>
                 </div>
             </div>
@@ -47,8 +41,14 @@
             <!-- Welcome Screen (shown when no page is selected) -->
             <div class="welcome-screen" id="welcomeScreen">
                 <h2>👋 Welcome to Written</h2>
-                <p>Your personal markdown notebook</p>
+                <p>Your personal Notion-like workspace</p>
                 <p>Create a new page to get started!</p>
+                <div class="welcome-features">
+                    <div class="feature">📝 Block-based editor</div>
+                    <div class="feature">🎯 Drag & drop blocks</div>
+                    <div class="feature">✅ To-do lists</div>
+                    <div class="feature">💾 Auto-save</div>
+                </div>
             </div>
         </main>
     </div>

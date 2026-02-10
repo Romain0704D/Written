@@ -166,140 +166,211 @@ body {
     background-color: #d44545;
 }
 
-/* Editor Layout */
-.editor-layout {
-    flex: 1;
-    display: flex;
-    overflow: hidden;
-}
-
-.editor-pane,
-.preview-pane {
+/* Blocks Editor */
+.blocks-editor {
     flex: 1;
     overflow-y: auto;
-}
-
-.editor-pane {
-    border-right: 1px solid #e0e0e0;
-}
-
-#markdownEditor {
-    width: 100%;
-    height: 100%;
-    border: none;
-    outline: none;
     padding: 40px;
-    font-size: 16px;
-    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-    line-height: 1.6;
-    resize: none;
-    color: #37352f;
 }
 
-#markdownEditor::placeholder {
+.blocks-container {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+/* Block Styles */
+.block {
+    position: relative;
+    margin-bottom: 4px;
+    display: flex;
+    gap: 8px;
+    padding: 4px 0;
+    transition: background-color 0.2s;
+}
+
+.block:hover {
+    background-color: #f7f6f3;
+}
+
+.block:hover .block-controls {
+    opacity: 1;
+}
+
+.block.dragging {
+    opacity: 0.5;
+}
+
+.block-controls {
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    flex-shrink: 0;
+}
+
+.block-controls button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    color: #9b9a97;
+    font-size: 14px;
+    border-radius: 3px;
+    transition: background-color 0.2s;
+}
+
+.block-controls button:hover {
+    background-color: #e0ddd7;
+}
+
+.block-drag-handle {
+    cursor: grab;
+}
+
+.block-drag-handle:active {
+    cursor: grabbing;
+}
+
+.block-content {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Block Types */
+.block-text,
+.block-heading,
+.block-code,
+.block-quote {
+    outline: none;
+    padding: 4px 8px;
+    border-radius: 3px;
+    transition: background-color 0.2s;
+}
+
+.block-text:focus,
+.block-heading:focus,
+.block-code:focus,
+.block-quote:focus {
+    background-color: #ffffff;
+}
+
+.block-text {
+    min-height: 24px;
+    line-height: 1.6;
+}
+
+.block-heading {
+    font-weight: 600;
+    margin: 8px 0;
+}
+
+.block-heading[contenteditable="true"]:empty:before,
+.block-text[contenteditable="true"]:empty:before,
+.block-code[contenteditable="true"]:empty:before,
+.block-quote[contenteditable="true"]:empty:before,
+.block-todo div[contenteditable="true"]:empty:before,
+.block-list div[contenteditable="true"]:empty:before {
+    content: attr(data-placeholder);
     color: #9b9a97;
 }
 
-.markdown-preview {
-    padding: 40px;
+h1.block-heading {
+    font-size: 28px;
+}
+
+h2.block-heading {
+    font-size: 22px;
+}
+
+h3.block-heading {
+    font-size: 18px;
+}
+
+.block-todo {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+}
+
+.block-todo input[type="checkbox"] {
+    margin-top: 6px;
+    cursor: pointer;
+}
+
+.block-todo div {
+    flex: 1;
+    outline: none;
+    padding: 4px;
+    min-height: 24px;
     line-height: 1.6;
 }
 
-/* Markdown Preview Styles */
-.markdown-preview h1 {
-    font-size: 2em;
-    margin-bottom: 0.5em;
-    margin-top: 1em;
-    font-weight: 700;
+.block-list {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
 }
 
-.markdown-preview h2 {
-    font-size: 1.5em;
-    margin-bottom: 0.5em;
-    margin-top: 1em;
-    font-weight: 600;
+.list-marker {
+    flex-shrink: 0;
+    color: #9b9a97;
+    padding-top: 4px;
 }
 
-.markdown-preview h3 {
-    font-size: 1.25em;
-    margin-bottom: 0.5em;
-    margin-top: 1em;
-    font-weight: 600;
+.block-list div {
+    flex: 1;
+    outline: none;
+    padding: 4px;
+    min-height: 24px;
+    line-height: 1.6;
 }
 
-.markdown-preview p {
-    margin-bottom: 1em;
-}
-
-.markdown-preview ul,
-.markdown-preview ol {
-    margin-left: 1.5em;
-    margin-bottom: 1em;
-}
-
-.markdown-preview li {
-    margin-bottom: 0.5em;
-}
-
-.markdown-preview code {
+.block-code {
     background-color: #f7f6f3;
-    padding: 2px 6px;
-    border-radius: 3px;
     font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-    font-size: 0.9em;
-}
-
-.markdown-preview pre {
-    background-color: #f7f6f3;
-    padding: 16px;
+    font-size: 14px;
+    padding: 12px;
     border-radius: 4px;
-    overflow-x: auto;
-    margin-bottom: 1em;
+    white-space: pre-wrap;
+    line-height: 1.4;
 }
 
-.markdown-preview pre code {
-    background-color: transparent;
-    padding: 0;
-}
-
-.markdown-preview blockquote {
+.block-quote {
     border-left: 3px solid #e0e0e0;
-    padding-left: 1em;
-    margin-left: 0;
-    margin-bottom: 1em;
+    padding: 8px 16px;
     color: #6b6b6b;
+    font-style: italic;
+    line-height: 1.6;
 }
 
-.markdown-preview a {
-    color: #2eaadc;
-    text-decoration: none;
+.block-divider {
+    border: none;
+    border-top: 1px solid #e0e0e0;
+    margin: 16px 0;
 }
 
-.markdown-preview a:hover {
-    text-decoration: underline;
-}
-
-.markdown-preview img {
-    max-width: 100%;
-    height: auto;
-}
-
-.markdown-preview table {
-    border-collapse: collapse;
-    width: 100%;
-    margin-bottom: 1em;
-}
-
-.markdown-preview table th,
-.markdown-preview table td {
+/* Block Type Menu */
+.block-type-menu {
+    background-color: white;
     border: 1px solid #e0e0e0;
-    padding: 8px;
-    text-align: left;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    padding: 4px;
+    min-width: 200px;
+    max-height: 400px;
+    overflow-y: auto;
 }
 
-.markdown-preview table th {
+.menu-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: background-color 0.2s;
+    font-size: 14px;
+}
+
+.menu-item:hover {
     background-color: #f7f6f3;
-    font-weight: 600;
 }
 
 /* Welcome Screen */
@@ -327,6 +398,21 @@ body {
     font-size: 1.1em;
     color: #6b6b6b;
     margin-bottom: 0.5em;
+}
+
+.welcome-features {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 32px;
+}
+
+.feature {
+    background-color: #f7f6f3;
+    padding: 16px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #37352f;
 }
 
 /* Scrollbar Styles */
