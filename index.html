@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Written - Personal Markdown Notebook</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/marked@9.1.6/marked.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1>📝 Written</h1>
+                <button id="newPageBtn" class="btn-primary">+ New Page</button>
+            </div>
+            <div class="pages-list" id="pagesList">
+                <!-- Pages will be dynamically inserted here -->
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <div class="editor-container">
+                <div class="editor-header">
+                    <input type="text" id="pageTitle" class="page-title-input" placeholder="Untitled">
+                    <div class="editor-actions">
+                        <button id="exportBtn" class="btn-secondary">📥 Export MD</button>
+                        <button id="deleteBtn" class="btn-danger">🗑️ Delete</button>
+                    </div>
+                </div>
+                
+                <div class="editor-layout">
+                    <!-- Markdown Editor -->
+                    <div class="editor-pane">
+                        <textarea id="markdownEditor" placeholder="Start writing in markdown..."></textarea>
+                    </div>
+                    
+                    <!-- Live Preview -->
+                    <div class="preview-pane">
+                        <div id="markdownPreview" class="markdown-preview"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Welcome Screen (shown when no page is selected) -->
+            <div class="welcome-screen" id="welcomeScreen">
+                <h2>👋 Welcome to Written</h2>
+                <p>Your personal markdown notebook</p>
+                <p>Create a new page to get started!</p>
+            </div>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
