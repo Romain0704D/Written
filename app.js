@@ -623,6 +623,7 @@ function deleteBlock(blockId) {
     
     // Don't allow deleting the last block
     if (page.blocks.length <= 1) {
+        alert('Impossible de supprimer le dernier bloc de la page.');
         return;
     }
     
@@ -685,7 +686,7 @@ function showBlockTypeMenu(e, block) {
                 block.content = '';
             }
             saveCurrentPage();
-            addToHistory('Type de bloc changé');
+            addToHistory(`Type de bloc changé: ${oldType} → ${type}`);
             const page = pages.find(p => p.id === currentPageId);
             if (page) renderBlocks(page.blocks);
         }
