@@ -2,6 +2,9 @@
 let pages = [];
 let currentPageId = null;
 
+// Constants
+const PARAGRAPH_BREAK_MARKER = '___PARAGRAPH_BREAK___';
+
 // DOM Elements
 const pagesList = document.getElementById('pagesList');
 const newPageBtn = document.getElementById('newPageBtn');
@@ -149,28 +152,32 @@ function simpleMarkdownToHtml(markdown) {
     let html = markdown;
     
     // Headers (process from most specific to least specific)
-    html = html.replace(/^### (.+)$/gim, '<h3>$1</h3>');
-    html = html.replace(/^## (.+)$/gim, '<h2>$1</h2>');
-    html = html.replace(/^# (.+)$/gim, '<h1>$1</h1>');
+    // Escape HTML to prevent XSS
+    html = html.replace(/^### (.+)$/gim, (match, content) => '<h3>' + escapeHtml(content) + '</h3>');
+    html = html.replace(/^## (.+)$/gim, (match, content) => '<h2>' + escapeHtml(content) + '</h2>');
+    html = html.replace(/^# (.+)$/gim, (match, content) => '<h1>' + escapeHtml(content) + '</h1>');
     
     // Bold
-    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/\*\*(.+?)\*\*/g, (match, content) => '<strong>' + escapeHtml(content) + '</strong>');
     
     // Italic
-    html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+    html = html.replace(/\*(.+?)\*/g, (match, content) => '<em>' + escapeHtml(content) + '</em>');
     
-    // Links
-    html = html.replace(/\[([^\]]+)\]\(([^\)]+)\)/g, '<a href="$2">$1</a>');
+    // Links - sanitize URLs to prevent XSS
+    html = html.replace(/\[([^\]]+)\]\(([^\)]+)\)/g, (match, text, url) => {
+        const sanitizedUrl = sanitizeUrl(url);
+        return '<a href="' + sanitizedUrl + '">' + escapeHtml(text) + '</a>';
+    });
     
     // Inline code
-    html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+    html = html.replace(/`([^`]+)`/g, (match, content) => '<code>' + escapeHtml(content) + '</code>');
     
     // Preserve headers by replacing newlines in a way that doesn't break them
-    html = html.replace(/\n\n/g, '___PARAGRAPH_BREAK___');
+    html = html.replace(/\n\n/g, PARAGRAPH_BREAK_MARKER);
     html = html.replace(/\n/g, '<br>');
     
     // Wrap content in paragraphs, but not headers
-    html = html.replace(/___PARAGRAPH_BREAK___/g, '</p><p>');
+    html = html.replace(new RegExp(PARAGRAPH_BREAK_MARKER, 'g'), '</p><p>');
     html = '<p>' + html + '</p>';
     
     // Fix headers wrapped in paragraphs
@@ -179,6 +186,22 @@ function simpleMarkdownToHtml(markdown) {
     html = html.replace(/<p><\/p>/g, '');
     
     return html;
+}
+
+// Sanitize URL to prevent XSS attacks
+function sanitizeUrl(url) {
+    const trimmedUrl = url.trim();
+    // Check for dangerous protocols
+    const dangerousProtocols = ['javascript:', 'data:', 'vbscript:'];
+    const lowerUrl = trimmedUrl.toLowerCase();
+    
+    for (const protocol of dangerousProtocols) {
+        if (lowerUrl.startsWith(protocol)) {
+            return '#'; // Return safe fallback
+        }
+    }
+    
+    return escapeHtml(trimmedUrl);
 }
 
 // Export current page as markdown
