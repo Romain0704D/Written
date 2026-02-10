@@ -9,6 +9,7 @@ body {
     background-color: #ffffff;
     color: #37352f;
     overflow: hidden;
+    line-height: 1.6;
 }
 
 .app-container {
@@ -40,19 +41,21 @@ body {
 
 .btn-primary {
     width: 100%;
-    padding: 8px 12px;
-    background-color: #2eaadc;
+    padding: 10px 14px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     border: none;
-    border-radius: 4px;
+    border-radius: 6px;
     cursor: pointer;
     font-size: 14px;
-    font-weight: 500;
-    transition: background-color 0.2s;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
 }
 
 .btn-primary:hover {
-    background-color: #2691bd;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
 .pages-list {
@@ -230,20 +233,29 @@ body {
 .btn-danger {
     padding: 8px 16px;
     border: none;
-    border-radius: 4px;
+    border-radius: 6px;
     cursor: pointer;
     font-size: 14px;
     font-weight: 500;
     transition: all 0.2s;
+    white-space: nowrap;
 }
 
 .btn-secondary {
     background-color: #f7f6f3;
     color: #37352f;
+    border: 1px solid #e0e0e0;
 }
 
-.btn-secondary:hover {
+.btn-secondary:hover:not(:disabled) {
     background-color: #e0ddd7;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn-secondary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 .btn-danger {
@@ -253,6 +265,8 @@ body {
 
 .btn-danger:hover {
     background-color: #d44545;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(235, 87, 87, 0.3);
 }
 
 /* Blocks Editor */
@@ -274,7 +288,8 @@ body {
     display: flex;
     gap: 8px;
     padding: 4px 0;
-    transition: background-color 0.2s;
+    transition: all 0.2s ease;
+    border-radius: 4px;
 }
 
 .block:hover {
@@ -305,11 +320,26 @@ body {
     color: #9b9a97;
     font-size: 14px;
     border-radius: 3px;
-    transition: background-color 0.2s;
+    transition: all 0.2s;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .block-controls button:hover {
     background-color: #e0ddd7;
+    color: #37352f;
+}
+
+.block-controls .block-delete {
+    color: #eb5757;
+}
+
+.block-controls .block-delete:hover {
+    background-color: #ffe5e5;
+    color: #d44545;
 }
 
 .block-drag-handle {
@@ -471,6 +501,7 @@ h3.block-heading {
     height: 100%;
     text-align: center;
     padding: 40px;
+    gap: 24px;
 }
 
 .welcome-screen.hidden {
@@ -478,29 +509,83 @@ h3.block-heading {
 }
 
 .welcome-screen h2 {
-    font-size: 2em;
-    margin-bottom: 0.5em;
+    font-size: 2.5em;
+    margin-bottom: 0;
     color: #37352f;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
-.welcome-screen p {
-    font-size: 1.1em;
+.welcome-screen > p {
+    font-size: 1.2em;
     color: #6b6b6b;
-    margin-bottom: 0.5em;
+    margin: 0;
 }
 
 .welcome-features {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(3, 1fr);
     gap: 16px;
-    margin-top: 32px;
+    margin-top: 16px;
+    max-width: 600px;
 }
 
 .feature {
-    background-color: #f7f6f3;
-    padding: 16px 24px;
-    border-radius: 8px;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    padding: 20px 24px;
+    border-radius: 12px;
     font-size: 14px;
+    color: #37352f;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    cursor: default;
+}
+
+.feature:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.welcome-shortcuts {
+    margin-top: 24px;
+    padding: 24px;
+    background-color: #f7f6f3;
+    border-radius: 12px;
+    max-width: 500px;
+}
+
+.welcome-shortcuts h3 {
+    font-size: 1.3em;
+    margin-bottom: 16px;
+    color: #37352f;
+}
+
+.shortcuts-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    text-align: left;
+}
+
+.shortcut {
+    font-size: 14px;
+    color: #6b6b6b;
+    padding: 8px 12px;
+    background-color: white;
+    border-radius: 6px;
+    border: 1px solid #e0e0e0;
+}
+
+.shortcut kbd {
+    background-color: #f7f6f3;
+    border: 1px solid #d1d0cd;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 12px;
+    font-family: monospace;
+    font-weight: 600;
     color: #37352f;
 }
 
